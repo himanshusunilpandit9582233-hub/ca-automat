@@ -156,3 +156,13 @@ input:focus, select:focus, textarea:focus {
         display: contents !important;
     }
 }
+
+/* Hide Emergent badge */
+#emergent-badge,
+[id*="emergent"],
+.emergent-badge,
+[class*="emergent-badge"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
