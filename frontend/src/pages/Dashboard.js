@@ -266,40 +266,64 @@ export default function Dashboard() {
             {status?.user_details && (
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A] mb-4">
-                  Verified Documents
+                  Verified Documents & Keys
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   {status.user_details.pan && (
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
-                        <CreditCard className="w-4 h-4" />
-                        PAN Number
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
+                          <CreditCard className="w-4 h-4" />
+                          PAN Number
+                        </div>
+                        <CheckCircle2 className="w-4 h-4 text-[#059669]" />
                       </div>
                       <p className="font-mono font-bold text-[#0A0A0A]">
                         {status.user_details.pan}
                       </p>
+                      {status.user_details.pan_key && (
+                        <p className="font-mono text-xs text-[#9CA3AF] mt-1">
+                          Key: {status.user_details.pan_key}
+                        </p>
+                      )}
                     </div>
                   )}
                   {status.user_details.gstin && (
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
-                        <FileCheck className="w-4 h-4" />
-                        GSTIN
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
+                          <FileCheck className="w-4 h-4" />
+                          GSTIN
+                        </div>
+                        <CheckCircle2 className="w-4 h-4 text-[#059669]" />
                       </div>
                       <p className="font-mono font-bold text-[#0A0A0A]">
                         {status.user_details.gstin}
                       </p>
+                      {status.user_details.gst_key && (
+                        <p className="font-mono text-xs text-[#9CA3AF] mt-1">
+                          Key: {status.user_details.gst_key}
+                        </p>
+                      )}
                     </div>
                   )}
                   {status.user_details.cin && (
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
-                        <Building2 className="w-4 h-4" />
-                        CIN
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
+                          <Building2 className="w-4 h-4" />
+                          CIN
+                        </div>
+                        <CheckCircle2 className="w-4 h-4 text-[#059669]" />
                       </div>
                       <p className="font-mono font-bold text-[#0A0A0A] text-sm">
                         {status.user_details.cin}
                       </p>
+                      {status.user_details.cin_key && (
+                        <p className="font-mono text-xs text-[#9CA3AF] mt-1">
+                          Key: {status.user_details.cin_key}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

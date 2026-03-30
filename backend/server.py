@@ -188,6 +188,30 @@ class UserDetails(BaseModel):
     business_name: Optional[str] = None
     director_name: Optional[str] = None
 
+# ==========================================
+# VERIFICATION KEY GENERATOR
+# ==========================================
+# Each verification step generates a unique key that can be used
+# to verify the user's status anywhere in the system.
+# Format: {step}_{user_id}_{timestamp_hash}
+#
+import hashlib
+
+def generate_verification_key(user_id: str, step: str, value: str) -> str:
+    """
+    Generate a unique verification key for each step.
+    This key is proof that the user completed this verification.
+    
+    Example keys:
+    - PAN_KEY:  pan_abc123_x7f9k2m1
+    - GST_KEY:  gst_abc123_p3n8q5w2
+    - CIN_KEY:  cin_abc123_r4t6y8u9
+    """
+    timestamp = datetime.now(timezone.utc).isoformat()
+    raw_string = f"{user_id}:{step}:{value}:{timestamp}"
+    hash_value = hashlib.sha256(raw_string.encode()).hexdigest()[:8]
+    return f"{step}_{user_id[:8]}_{hash_value}"
+
 class UserResponse(BaseModel):
     id: str
     email: str
@@ -466,6 +490,15 @@ async def get_onboarding_status(request: Request):
 
 @onboarding_router.post("/pan-verify")
 async def verify_pan(pan_data: PANVerification, request: Request):
+    """
+    Verify PAN and generate a unique PAN verification key.
+    
+    Bitmask Update: status_code = status_code | 1 (sets bit 0)
+    
+    Returns:
+    - pan_key: Unique verification key for PAN (can be used anywhere)
+    - status_code: Updated bitmask with PAN bit set
+    """
     user = await get_current_user(request)
     user_id = user["_id"]
     
@@ -474,17 +507,24 @@ async def verify_pan(pan_data: PANVerification, request: Request):
     if not pan.startswith(("A", "B", "C", "F", "G", "H", "L", "J", "P", "T", "K")):
         raise HTTPException(status_code=400, detail="Invalid PAN format")
     
-    # Update user details
+    # Generate unique PAN verification key
+    pan_key = generate_verification_key(user_id, "pan", pan)
+    
+    # Update user details with PAN and verification key
     await db.user_details.update_one(
         {"user_id": user_id},
-        {"$set": {"pan": pan}},
+        {"$set": {
+            "pan": pan,
+            "pan_key": pan_key,
+            "pan_verified_at": datetime.now(timezone.utc).isoformat()
+        }},
         upsert=True
     )
     
-    # Update status bitmask
+    # Update status bitmask: status_code = status_code | PAN_VERIFIED (bit 0 = 1)
     onboarding = await db.onboarding_status.find_one({"user_id": user_id})
     current_status = onboarding.get("status_code", 0) if onboarding else 0
-    new_status = StatusBit.set_bit(current_status, StatusBit.PAN_VERIFIED)
+    new_status = StatusBit.set_bit(current_status, StatusBit.PAN_VERIFIED)  # new_status = current_status | 1
     
     await db.onboarding_status.update_one(
         {"user_id": user_id},
@@ -497,34 +537,52 @@ async def verify_pan(pan_data: PANVerification, request: Request):
         upsert=True
     )
     
-    logger.info(f"PAN verified for user {user_id}. Status: {current_status} -> {new_status}")
+    logger.info(f"PAN verified for user {user_id}. Key: {pan_key}. Status: {current_status} | 1 = {new_status}")
     
     return {
         "message": "PAN verified successfully",
         "pan": pan,
+        "pan_key": pan_key,  # Unique verification key for PAN
         "status_code": new_status,
+        "bit_value": StatusBit.PAN_VERIFIED,  # 1 (2^0)
         "status_binary": StatusBit.get_binary_string(new_status)
     }
 
 @onboarding_router.post("/gstin-verify")
 async def verify_gstin(gst_data: GSTVerification, request: Request):
+    """
+    Verify GSTIN and generate a unique GST verification key.
+    
+    Bitmask Update: status_code = status_code | 2 (sets bit 1)
+    
+    Returns:
+    - gst_key: Unique verification key for GST (can be used anywhere)
+    - status_code: Updated bitmask with GST bit set
+    """
     user = await get_current_user(request)
     user_id = user["_id"]
     
     # Mock GSTIN verification
     gstin = gst_data.gstin.upper()
     
-    # Update user details
+    # Generate unique GST verification key
+    gst_key = generate_verification_key(user_id, "gst", gstin)
+    
+    # Update user details with GSTIN and verification key
     await db.user_details.update_one(
         {"user_id": user_id},
-        {"$set": {"gstin": gstin}},
+        {"$set": {
+            "gstin": gstin,
+            "gst_key": gst_key,
+            "gst_verified_at": datetime.now(timezone.utc).isoformat()
+        }},
         upsert=True
     )
     
-    # Update status bitmask
+    # Update status bitmask: status_code = status_code | GST_VERIFIED (bit 1 = 2)
     onboarding = await db.onboarding_status.find_one({"user_id": user_id})
     current_status = onboarding.get("status_code", 0) if onboarding else 0
-    new_status = StatusBit.set_bit(current_status, StatusBit.GST_VERIFIED)
+    new_status = StatusBit.set_bit(current_status, StatusBit.GST_VERIFIED)  # new_status = current_status | 2
     
     await db.onboarding_status.update_one(
         {"user_id": user_id},
@@ -537,34 +595,52 @@ async def verify_gstin(gst_data: GSTVerification, request: Request):
         upsert=True
     )
     
-    logger.info(f"GSTIN verified for user {user_id}. Status: {current_status} -> {new_status}")
+    logger.info(f"GSTIN verified for user {user_id}. Key: {gst_key}. Status: {current_status} | 2 = {new_status}")
     
     return {
         "message": "GSTIN verified successfully",
         "gstin": gstin,
+        "gst_key": gst_key,  # Unique verification key for GST
         "status_code": new_status,
+        "bit_value": StatusBit.GST_VERIFIED,  # 2 (2^1)
         "status_binary": StatusBit.get_binary_string(new_status)
     }
 
 @onboarding_router.post("/cin-verify")
 async def verify_cin(cin_data: CINVerification, request: Request):
+    """
+    Verify CIN and generate a unique CIN verification key.
+    
+    Bitmask Update: status_code = status_code | 4 (sets bit 2)
+    
+    Returns:
+    - cin_key: Unique verification key for CIN (can be used anywhere)
+    - status_code: Updated bitmask with CIN bit set
+    """
     user = await get_current_user(request)
     user_id = user["_id"]
     
     # Mock CIN verification
     cin = cin_data.cin.upper()
     
-    # Update user details
+    # Generate unique CIN verification key
+    cin_key = generate_verification_key(user_id, "cin", cin)
+    
+    # Update user details with CIN and verification key
     await db.user_details.update_one(
         {"user_id": user_id},
-        {"$set": {"cin": cin}},
+        {"$set": {
+            "cin": cin,
+            "cin_key": cin_key,
+            "cin_verified_at": datetime.now(timezone.utc).isoformat()
+        }},
         upsert=True
     )
     
-    # Update status bitmask
+    # Update status bitmask: status_code = status_code | CIN_VERIFIED (bit 2 = 4)
     onboarding = await db.onboarding_status.find_one({"user_id": user_id})
     current_status = onboarding.get("status_code", 0) if onboarding else 0
-    new_status = StatusBit.set_bit(current_status, StatusBit.CIN_VERIFIED)
+    new_status = StatusBit.set_bit(current_status, StatusBit.CIN_VERIFIED)  # new_status = current_status | 4
     
     await db.onboarding_status.update_one(
         {"user_id": user_id},
@@ -577,17 +653,32 @@ async def verify_cin(cin_data: CINVerification, request: Request):
         upsert=True
     )
     
-    logger.info(f"CIN verified for user {user_id}. Status: {current_status} -> {new_status}")
+    logger.info(f"CIN verified for user {user_id}. Key: {cin_key}. Status: {current_status} | 4 = {new_status}")
     
     return {
         "message": "CIN verified successfully",
         "cin": cin,
+        "cin_key": cin_key,  # Unique verification key for CIN
         "status_code": new_status,
+        "bit_value": StatusBit.CIN_VERIFIED,  # 4 (2^2)
         "status_binary": StatusBit.get_binary_string(new_status)
     }
 
 @onboarding_router.post("/consent")
 async def submit_consent(consent_data: ConsentRequest, request: Request):
+    """
+    Submit consent and generate a unique consent verification key.
+    
+    Bitmask Updates:
+    - General Consent: status_code = status_code | 8  (bit 3)
+    - AIS Consent:     status_code = status_code | 16 (bit 4)
+    - ITR Consent:     status_code = status_code | 32 (bit 5)
+    - Account Created: status_code = status_code | 64 (bit 6) - auto when all steps done
+    
+    Returns:
+    - consent_key: Unique verification key for consent
+    - status_code: Updated bitmask with consent bits set
+    """
     user = await get_current_user(request)
     user_id = user["_id"]
     
@@ -595,19 +686,19 @@ async def submit_consent(consent_data: ConsentRequest, request: Request):
     current_status = onboarding.get("status_code", 0) if onboarding else 0
     new_status = current_status
     
-    # Set consent bit
+    # Set consent bit: status_code = status_code | 8 (bit 3)
     if consent_data.general_consent:
         new_status = StatusBit.set_bit(new_status, StatusBit.CONSENT_GIVEN)
     
-    # Set AIS access bit
+    # Set AIS access bit: status_code = status_code | 16 (bit 4)
     if consent_data.ais_consent:
         new_status = StatusBit.set_bit(new_status, StatusBit.AIS_ACCESS)
     
-    # Set ITR fetched bit
+    # Set ITR fetched bit: status_code = status_code | 32 (bit 5)
     if consent_data.itr_consent:
         new_status = StatusBit.set_bit(new_status, StatusBit.ITR_FETCHED)
     
-    # Auto-create account if all required steps are done
+    # Auto-create account if all required steps are done: status_code = status_code | 64 (bit 6)
     role = user.get("role")
     if role:
         required_steps = ONBOARDING_FLOWS.get(role, [])
@@ -621,6 +712,21 @@ async def submit_consent(consent_data: ConsentRequest, request: Request):
         if all_done:
             new_status = StatusBit.set_bit(new_status, StatusBit.ACCOUNT_CREATED)
     
+    # Generate unique consent verification key
+    consent_key = generate_verification_key(user_id, "consent", str(consent_data.general_consent))
+    
+    # Store consent key
+    await db.user_details.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "consent_key": consent_key,
+            "consent_given_at": datetime.now(timezone.utc).isoformat(),
+            "ais_consent": consent_data.ais_consent,
+            "itr_consent": consent_data.itr_consent
+        }},
+        upsert=True
+    )
+    
     await db.onboarding_status.update_one(
         {"user_id": user_id},
         {
@@ -632,11 +738,18 @@ async def submit_consent(consent_data: ConsentRequest, request: Request):
         upsert=True
     )
     
-    logger.info(f"Consent submitted for user {user_id}. Status: {current_status} -> {new_status}")
+    logger.info(f"Consent submitted for user {user_id}. Key: {consent_key}. Status: {current_status} -> {new_status}")
     
     return {
         "message": "Consent submitted successfully",
+        "consent_key": consent_key,  # Unique verification key for consent
         "status_code": new_status,
+        "bit_values": {
+            "consent": StatusBit.CONSENT_GIVEN if consent_data.general_consent else 0,
+            "ais": StatusBit.AIS_ACCESS if consent_data.ais_consent else 0,
+            "itr": StatusBit.ITR_FETCHED if consent_data.itr_consent else 0,
+            "account": StatusBit.ACCOUNT_CREATED if StatusBit.check_bit(new_status, StatusBit.ACCOUNT_CREATED) else 0
+        },
         "status_binary": StatusBit.get_binary_string(new_status),
         "account_created": StatusBit.check_bit(new_status, StatusBit.ACCOUNT_CREATED)
     }
@@ -665,6 +778,76 @@ async def get_onboarding_flows():
             "itr_fetched": StatusBit.ITR_FETCHED,
             "account_created": StatusBit.ACCOUNT_CREATED
         }
+    }
+
+# ==========================================
+# VERIFICATION KEY ENDPOINTS
+# ==========================================
+@onboarding_router.get("/verification-keys")
+async def get_verification_keys(request: Request):
+    """
+    Get all verification keys for the current user.
+    These unique keys can be used anywhere to verify the user's status.
+    """
+    user = await get_current_user(request)
+    user_id = user["_id"]
+    
+    user_details = await db.user_details.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not user_details:
+        return {"verification_keys": {}}
+    
+    keys = {}
+    if user_details.get("pan_key"):
+        keys["pan_key"] = user_details["pan_key"]
+    if user_details.get("gst_key"):
+        keys["gst_key"] = user_details["gst_key"]
+    if user_details.get("cin_key"):
+        keys["cin_key"] = user_details["cin_key"]
+    if user_details.get("consent_key"):
+        keys["consent_key"] = user_details["consent_key"]
+    
+    return {
+        "user_id": user_id,
+        "verification_keys": keys,
+        "details": {
+            "pan": user_details.get("pan"),
+            "gstin": user_details.get("gstin"),
+            "cin": user_details.get("cin")
+        }
+    }
+
+@api_router.get("/verify-key/{key}")
+async def verify_key(key: str):
+    """
+    Verify a verification key and get the associated user details.
+    This endpoint can be used anywhere to verify a user's status.
+    
+    Example: /api/verify-key/pan_abc12345_x7f9k2m1
+    """
+    # Determine key type from prefix
+    key_type = key.split("_")[0] if "_" in key else None
+    
+    if key_type not in ["pan", "gst", "cin", "consent"]:
+        raise HTTPException(status_code=400, detail="Invalid key format")
+    
+    # Search for the key in user_details
+    key_field = f"{key_type}_key"
+    user_details = await db.user_details.find_one({key_field: key}, {"_id": 0})
+    
+    if not user_details:
+        raise HTTPException(status_code=404, detail="Verification key not found")
+    
+    user_id = user_details.get("user_id")
+    onboarding = await db.onboarding_status.find_one({"user_id": user_id})
+    
+    return {
+        "valid": True,
+        "key_type": key_type,
+        "user_id": user_id,
+        "status_code": onboarding.get("status_code", 0) if onboarding else 0,
+        "verified_value": user_details.get(key_type) or user_details.get("gstin") if key_type == "gst" else user_details.get(key_type),
+        "verified_at": user_details.get(f"{key_type}_verified_at") or user_details.get(f"{key_type}_given_at")
     }
 
 # Include routers
