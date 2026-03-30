@@ -1,34 +1,130 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Landing Page Hero */
+.hero-section {
+    @apply relative min-h-screen flex items-center;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.hero-overlay {
+    @apply absolute inset-0 bg-gradient-to-br from-white/90 to-white/70;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Navigation */
+.nav-glass {
+    @apply fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200;
 }
 
-.App-link {
-    color: #61dafb;
+/* Feature Cards */
+.feature-card {
+    @apply p-8 bg-white border border-gray-200 rounded-sm transition-all duration-300;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
+.feature-card:hover {
+    @apply border-[#002FA7] shadow-sm;
+}
+
+/* Role Selection Cards */
+.role-card {
+    @apply p-6 bg-white border-2 border-gray-200 rounded-sm cursor-pointer transition-all duration-200;
+}
+
+.role-card:hover {
+    @apply border-[#002FA7]/50;
+}
+
+.role-card.selected {
+    @apply border-[#002FA7] bg-[#002FA7]/5;
+}
+
+/* Onboarding Wizard */
+.wizard-step {
+    @apply flex items-center gap-3;
+}
+
+.wizard-step-indicator {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all duration-200;
+}
+
+.wizard-step-indicator.completed {
+    @apply bg-[#059669] border-[#059669] text-white;
+}
+
+.wizard-step-indicator.active {
+    @apply bg-[#002FA7] border-[#002FA7] text-white;
+}
+
+.wizard-step-indicator.pending {
+    @apply bg-gray-100 border-gray-200 text-gray-400;
+}
+
+/* Status Dashboard */
+.status-card {
+    @apply p-6 bg-white border border-gray-200 rounded-sm;
+}
+
+.status-bit-display {
+    @apply flex gap-1 font-mono;
+}
+
+/* Form Styles */
+.form-container {
+    @apply max-w-md w-full mx-auto p-8 bg-white border border-gray-200 rounded-sm;
+}
+
+.form-input {
+    @apply w-full px-4 py-3 border border-gray-200 rounded-sm text-[#0A0A0A] placeholder:text-gray-400 focus:border-[#002FA7] focus:ring-2 focus:ring-[#002FA7]/20 transition-all;
+}
+
+.form-label {
+    @apply block text-sm font-medium text-[#0A0A0A] mb-2;
+}
+
+/* Auth Pages */
+.auth-container {
+    @apply min-h-screen flex;
+}
+
+.auth-form-section {
+    @apply w-full lg:w-1/2 flex items-center justify-center p-8;
+}
+
+.auth-image-section {
+    @apply hidden lg:block lg:w-1/2 relative overflow-hidden;
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+    @apply min-h-screen bg-[#F9FAFB];
+}
+
+.dashboard-sidebar {
+    @apply w-64 bg-white border-r border-gray-200 min-h-screen p-6;
+}
+
+.dashboard-main {
+    @apply flex-1 p-8;
+}
+
+/* Bit Indicator */
+.bit-indicator {
+    @apply w-4 h-4 rounded-full transition-all duration-200;
+}
+
+.bit-indicator.on {
+    @apply bg-[#059669];
+}
+
+.bit-indicator.off {
+    @apply bg-gray-300;
+}
+
+/* Loading States */
+.skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .form-container {
+        @apply p-6 border-0;
     }
 }
