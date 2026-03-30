@@ -44,28 +44,74 @@ onboarding_router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 # ==========================================
 # 32-BIT STATUS BITMASK SYSTEM
 # ==========================================
+# 
+# status_code is a combination of multiple flags stored in a single integer
+# using bitwise operations. Each verification step is a POWER OF 2:
+#
+# Bit Position | Value | Binary    | Meaning
+# -------------|-------|-----------|------------------
+# Bit 0        | 1     | 0b0000001 | PAN Verified
+# Bit 1        | 2     | 0b0000010 | GST Verified
+# Bit 2        | 4     | 0b0000100 | CIN Verified
+# Bit 3        | 8     | 0b0001000 | Consent Given
+# Bit 4        | 16    | 0b0010000 | AIS Access Approved
+# Bit 5        | 32    | 0b0100000 | ITR Data Fetched
+# Bit 6        | 64    | 0b1000000 | Account Created
+#
+# BITMASK OPERATIONS:
+# ------------------
+# SET a flag:    status = status | BIT_VALUE     (bitwise OR)
+# CHECK a flag:  (status & BIT_VALUE) != 0       (bitwise AND)
+# REMOVE a flag: status = status & ~BIT_VALUE    (bitwise AND NOT)
+#
+# EXAMPLE:
+# --------
+# User completes PAN (1) and GST (2) verification:
+# Initial:  status = 0           (0b0000000)
+# After PAN: status = 0 | 1 = 1  (0b0000001) - PAN flag is ON
+# After GST: status = 1 | 2 = 3  (0b0000011) - PAN + GST flags are ON
+#
+# To check if PAN is verified: (3 & 1) = 1 != 0 → TRUE
+# To check if CIN is verified: (3 & 4) = 0 == 0 → FALSE
+#
 class StatusBit:
-    PAN_VERIFIED = 1        # 2^0
-    GST_VERIFIED = 2        # 2^1
-    CIN_VERIFIED = 4        # 2^2
-    CONSENT_GIVEN = 8       # 2^3
-    AIS_ACCESS = 16         # 2^4
-    ITR_FETCHED = 32        # 2^5
-    ACCOUNT_CREATED = 64    # 2^6
+    # Each value is a power of 2 (2^n) representing a single bit
+    PAN_VERIFIED = 1        # 2^0 = 0b0000001
+    GST_VERIFIED = 2        # 2^1 = 0b0000010
+    CIN_VERIFIED = 4        # 2^2 = 0b0000100
+    CONSENT_GIVEN = 8       # 2^3 = 0b0001000
+    AIS_ACCESS = 16         # 2^4 = 0b0010000
+    ITR_FETCHED = 32        # 2^5 = 0b0100000
+    ACCOUNT_CREATED = 64    # 2^6 = 0b1000000
 
     @staticmethod
     def set_bit(status: int, bit_value: int) -> int:
-        """Set a specific bit in the status code"""
+        """
+        Set a specific bit in the status code using bitwise OR.
+        This ADDS the flag without affecting other flags.
+        
+        Example: set_bit(1, 2) = 1 | 2 = 3 (both PAN and GST flags ON)
+        """
         return status | bit_value
 
     @staticmethod
     def check_bit(status: int, bit_value: int) -> bool:
-        """Check if a specific bit is set"""
+        """
+        Check if a specific bit is set using bitwise AND.
+        
+        Example: check_bit(3, 1) = (3 & 1) = 1 != 0 → True (PAN is verified)
+        Example: check_bit(3, 4) = (3 & 4) = 0 == 0 → False (CIN not verified)
+        """
         return (status & bit_value) != 0
 
     @staticmethod
     def remove_bit(status: int, bit_value: int) -> int:
-        """Remove a specific bit from the status code"""
+        """
+        Remove a specific bit from the status code using bitwise AND NOT.
+        This REMOVES the flag without affecting other flags.
+        
+        Example: remove_bit(3, 1) = 3 & ~1 = 3 & -2 = 2 (only GST flag ON)
+        """
         return status & ~bit_value
 
     @staticmethod

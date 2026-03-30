@@ -1,35 +1,52 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import axios from 'axios';
 import { 
-  Binary, 
   LogOut, 
   User, 
   CheckCircle2,
-  XCircle,
+  Clock,
   RefreshCw,
   ArrowRight,
   CreditCard,
   FileCheck,
   Building2,
   Shield,
-  Database,
   FileText,
+  Download,
   Settings
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const BIT_LABELS = [
-  { bit: 64, label: 'Account', icon: User },
-  { bit: 32, label: 'ITR', icon: FileText },
-  { bit: 16, label: 'AIS', icon: Database },
-  { bit: 8, label: 'Consent', icon: Shield },
-  { bit: 4, label: 'CIN', icon: Building2 },
-  { bit: 2, label: 'GST', icon: FileCheck },
-  { bit: 1, label: 'PAN', icon: CreditCard }
+/**
+ * BITMASK STATUS EXPLANATION
+ * --------------------------
+ * The status_code is a single integer that stores multiple verification flags using bitwise operations.
+ * Each bit represents a specific verification step:
+ * 
+ * Bit 0 (1)  = PAN Verified
+ * Bit 1 (2)  = GST Verified
+ * Bit 2 (4)  = CIN Verified
+ * Bit 3 (8)  = Consent Given
+ * Bit 4 (16) = AIS Access Approved
+ * Bit 5 (32) = ITR Data Fetched
+ * Bit 6 (64) = Account Created
+ * 
+ * To check if PAN is verified: (status_code & 1) !== 0
+ * To check if GST is verified: (status_code & 2) !== 0
+ */
+
+const VERIFICATION_ITEMS = [
+  { bit: 1, label: 'PAN Verified', icon: CreditCard },
+  { bit: 2, label: 'GST Verified', icon: FileCheck },
+  { bit: 4, label: 'CIN Verified', icon: Building2 },
+  { bit: 8, label: 'Consent Accepted', icon: Shield },
+  { bit: 16, label: 'AIS Access', icon: FileText },
+  { bit: 32, label: 'ITR Data', icon: FileText },
+  { bit: 64, label: 'Account Active', icon: User }
 ];
 
 const ROLE_DISPLAY = {
@@ -78,6 +95,12 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  // Check if a specific bit is set in status_code using bitwise AND
+  const isBitSet = (bitValue) => {
+    if (!status) return false;
+    return (status.status_code & bitValue) !== 0;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
@@ -86,21 +109,23 @@ export default function Dashboard() {
     );
   }
 
+  const isOnboardingComplete = status?.progress_percentage === 100;
+
   return (
     <div className="min-h-screen bg-[#F9FAFB]" data-testid="dashboard-page">
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#002FA7] rounded-sm flex items-center justify-center">
-              <Binary className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-['Cabinet_Grotesk'] font-bold text-xl text-[#0A0A0A]">
-              CA Automate
-            </span>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-['Cabinet_Grotesk'] font-bold text-xl text-[#0A0A0A]">
+              CA Dashboard
+            </h1>
+            <p className="text-sm text-[#4B5563]">
+              {ROLE_DISPLAY[status?.role]} Account
+            </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               onClick={handleRefresh}
@@ -108,8 +133,7 @@ export default function Dashboard() {
               className="text-[#4B5563]"
               data-testid="refresh-btn"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button
               variant="ghost"
@@ -124,156 +148,52 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto py-8 px-6">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="font-['Cabinet_Grotesk'] text-3xl font-bold text-[#0A0A0A] mb-2">
-            Welcome back, {user?.name}
-          </h1>
-          <p className="text-[#4B5563]">
-            {status?.role ? ROLE_DISPLAY[status.role] : 'No role selected'} Account
-          </p>
+      <div className="max-w-6xl mx-auto py-8 px-6">
+        {/* Welcome Banner */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-['Cabinet_Grotesk'] text-2xl font-bold text-[#0A0A0A]">
+                Welcome, {user?.name}
+              </h2>
+              <p className="text-[#4B5563] mt-1">
+                {user?.email}
+              </p>
+            </div>
+            {isOnboardingComplete ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-[#059669] rounded-lg">
+                <CheckCircle2 className="w-5 h-5" />
+                <span className="font-medium">Verified</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-[#D97706] rounded-lg">
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">Onboarding Pending</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Status Overview */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Binary Status Display */}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
+            {/* Onboarding Status Card */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A]">
-                  32-Bit Status Code
-                </h2>
-                <span className="font-mono text-2xl text-[#002FA7]" data-testid="status-code-display">
-                  {status?.status_code || 0}
+                <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A]">
+                  Verification Status
+                </h3>
+                <span className="text-sm text-[#4B5563]">
+                  {status?.completed_steps?.length || 0}/{status?.required_steps?.length || 0} completed
                 </span>
               </div>
 
-              {/* Binary Representation */}
+              {/* Progress Bar */}
               <div className="mb-6">
-                <p className="text-sm text-[#9CA3AF] mb-3">Binary Representation</p>
-                <div className="flex gap-1 flex-wrap">
-                  {(status?.status_binary || '0000000').split('').map((bit, i) => (
-                    <div 
-                      key={i}
-                      className={`
-                        w-12 h-12 font-mono text-lg flex flex-col items-center justify-center border transition-all duration-200
-                        ${bit === '1' 
-                          ? 'bg-[#002FA7] text-white border-[#002FA7]' 
-                          : 'bg-gray-100 text-gray-400 border-gray-200'
-                        }
-                      `}
-                      data-testid={`binary-bit-${i}`}
-                    >
-                      <span className="text-sm">{bit}</span>
-                      <span className="text-[8px] mt-0.5 opacity-70">
-                        {BIT_LABELS[i]?.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bit Legend */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {BIT_LABELS.map(({ bit, label, icon: Icon }) => {
-                  const isSet = status?.status_code ? (status.status_code & bit) !== 0 : false;
-                  return (
-                    <div 
-                      key={bit}
-                      className={`
-                        flex items-center gap-2 p-3 border rounded-sm
-                        ${isSet ? 'border-[#059669] bg-green-50' : 'border-gray-200'}
-                      `}
-                      data-testid={`bit-status-${bit}`}
-                    >
-                      {isSet ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-gray-300" />
-                      )}
-                      <div>
-                        <p className={`text-xs font-mono ${isSet ? 'text-[#059669]' : 'text-[#9CA3AF]'}`}>
-                          {bit}
-                        </p>
-                        <p className={`text-sm ${isSet ? 'text-[#0A0A0A]' : 'text-[#4B5563]'}`}>
-                          {label}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Step Status Table */}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-              <h2 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A] mb-4">
-                Verification Status
-              </h2>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#9CA3AF]">Step</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#9CA3AF]">Bit Value</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-[#9CA3AF]">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(status?.status_breakdown || {}).map(([key, value]) => (
-                      <tr key={key} className="border-b border-gray-100 last:border-0">
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-[#0A0A0A] capitalize">
-                            {key.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="font-mono text-sm text-[#4B5563]">
-                            {key === 'pan_verified' && '1'}
-                            {key === 'gst_verified' && '2'}
-                            {key === 'cin_verified' && '4'}
-                            {key === 'consent_given' && '8'}
-                            {key === 'ais_access' && '16'}
-                            {key === 'itr_fetched' && '32'}
-                            {key === 'account_created' && '64'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          {value ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-[#059669] text-xs font-medium rounded-sm">
-                              <CheckCircle2 className="w-3 h-3" />
-                              Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-[#9CA3AF] text-xs font-medium rounded-sm">
-                              <XCircle className="w-3 h-3" />
-                              Pending
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Progress Card */}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-              <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A] mb-4">
-                Onboarding Progress
-              </h3>
-
-              <div className="relative pt-1 mb-4">
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-[#4B5563]">Completion</span>
-                  <span className="font-mono font-bold text-[#002FA7]" data-testid="progress-percentage">
-                    {status?.progress_percentage || 0}%
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-[#4B5563]">Progress</span>
+                  <span className="font-bold text-[#002FA7]" data-testid="progress-percentage">
+                    {Math.round(status?.progress_percentage || 0)}%
                   </span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -284,25 +204,56 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#4B5563]">Completed</span>
-                  <span className="text-[#059669] font-medium">
-                    {status?.completed_steps?.length || 0} steps
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#4B5563]">Pending</span>
-                  <span className="text-[#D97706] font-medium">
-                    {status?.pending_steps?.length || 0} steps
-                  </span>
-                </div>
+              {/* Verification Items */}
+              <div className="space-y-3">
+                {status?.required_steps?.map((step, index) => {
+                  const isCompleted = status.completed_steps?.includes(step);
+                  const stepLabels = {
+                    pan: 'PAN Verification',
+                    director_pan: 'Director PAN Verification',
+                    gst: 'GST Verification',
+                    cin: 'CIN Verification',
+                    consent: 'Consent & Authorization'
+                  };
+                  
+                  return (
+                    <div 
+                      key={step}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
+                        isCompleted ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          isCompleted ? 'bg-[#059669] text-white' : 'bg-gray-300 text-white'
+                        }`}>
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : (
+                            <span className="text-sm font-bold">{index + 1}</span>
+                          )}
+                        </div>
+                        <span className={`font-medium ${isCompleted ? 'text-[#059669]' : 'text-[#4B5563]'}`}>
+                          {stepLabels[step] || step}
+                        </span>
+                      </div>
+                      <span className={`text-sm px-3 py-1 rounded-full ${
+                        isCompleted 
+                          ? 'bg-green-100 text-[#059669]' 
+                          : 'bg-gray-200 text-[#4B5563]'
+                      }`}>
+                        {isCompleted ? 'Verified' : 'Pending'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
 
-              {(status?.pending_steps?.length || 0) > 0 && (
+              {/* Resume Button */}
+              {!isOnboardingComplete && (
                 <Button
                   onClick={() => navigate('/onboarding')}
-                  className="w-full mt-6 bg-[#002FA7] hover:bg-[#002482] text-white rounded-sm"
+                  className="w-full mt-6 bg-[#002FA7] hover:bg-[#002482] text-white rounded-lg py-6"
                   data-testid="resume-onboarding-btn"
                 >
                   Resume Onboarding
@@ -311,51 +262,102 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* User Details */}
+            {/* Verified Documents */}
             {status?.user_details && (
-              <div className="bg-white border border-gray-200 rounded-sm p-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A] mb-4">
-                  Verified Details
+                  Verified Documents
                 </h3>
-
-                <div className="space-y-3">
+                <div className="grid md:grid-cols-2 gap-4">
                   {status.user_details.pan && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm text-[#4B5563]">PAN</span>
-                      <span className="font-mono text-sm text-[#0A0A0A]">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
+                        <CreditCard className="w-4 h-4" />
+                        PAN Number
+                      </div>
+                      <p className="font-mono font-bold text-[#0A0A0A]">
                         {status.user_details.pan}
-                      </span>
+                      </p>
                     </div>
                   )}
                   {status.user_details.gstin && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm text-[#4B5563]">GSTIN</span>
-                      <span className="font-mono text-sm text-[#0A0A0A]">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
+                        <FileCheck className="w-4 h-4" />
+                        GSTIN
+                      </div>
+                      <p className="font-mono font-bold text-[#0A0A0A]">
                         {status.user_details.gstin}
-                      </span>
+                      </p>
                     </div>
                   )}
                   {status.user_details.cin && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-sm text-[#4B5563]">CIN</span>
-                      <span className="font-mono text-sm text-[#0A0A0A]">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2 text-[#4B5563] text-sm mb-1">
+                        <Building2 className="w-4 h-4" />
+                        CIN
+                      </div>
+                      <p className="font-mono font-bold text-[#0A0A0A] text-sm">
                         {status.user_details.cin}
-                      </span>
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Account Info */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A] mb-4">
+                Account Details
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-[#9CA3AF]">Entity Type</p>
+                  <p className="font-medium text-[#0A0A0A]">{ROLE_DISPLAY[status?.role]}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#9CA3AF]">Account Status</p>
+                  <p className={`font-medium ${isBitSet(64) ? 'text-[#059669]' : 'text-[#D97706]'}`}>
+                    {isBitSet(64) ? 'Active' : 'Pending Activation'}
+                  </p>
+                </div>
+                {isBitSet(16) && (
+                  <div>
+                    <p className="text-sm text-[#9CA3AF]">AIS Access</p>
+                    <p className="font-medium text-[#059669]">Authorized</p>
+                  </div>
+                )}
+                {isBitSet(32) && (
+                  <div>
+                    <p className="text-sm text-[#9CA3AF]">ITR Filing</p>
+                    <p className="font-medium text-[#059669]">Authorized</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Quick Actions */}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg text-[#0A0A0A] mb-4">
                 Quick Actions
               </h3>
-
               <div className="space-y-2">
+                {isOnboardingComplete && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-[#4B5563] hover:text-[#0A0A0A]"
+                    data-testid="download-certificate-btn"
+                  >
+                    <Download className="w-4 h-4 mr-3" />
+                    Download Certificate
+                  </Button>
+                )}
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   className="w-full justify-start text-[#4B5563] hover:text-[#0A0A0A]"
                   onClick={() => navigate('/select-role')}
                   data-testid="change-role-btn"
@@ -364,6 +366,22 @@ export default function Dashboard() {
                   Change Entity Type
                 </Button>
               </div>
+            </div>
+
+            {/* Help Card */}
+            <div className="bg-[#002FA7] rounded-lg p-6 text-white">
+              <h3 className="font-['Cabinet_Grotesk'] font-bold text-lg mb-2">
+                Need Help?
+              </h3>
+              <p className="text-sm text-white/80 mb-4">
+                Contact our support team for assistance with your onboarding.
+              </p>
+              <Button
+                variant="secondary"
+                className="w-full bg-white text-[#002FA7] hover:bg-gray-100"
+              >
+                Contact Support
+              </Button>
             </div>
           </div>
         </div>
