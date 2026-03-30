@@ -1,0 +1,96 @@
+{
+  "theme": "light",
+  "archetype": "Archetype 4: Swiss & High-Contrast",
+  "typography": {
+    "fonts_import": "@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,900,700&f[]=satoshi@400,500,700&display=swap');",
+    "headings": {
+      "family": "'Cabinet Grotesk', sans-serif",
+      "classes": "font-['Cabinet_Grotesk'] tracking-tight"
+    },
+    "body": {
+      "family": "'Satoshi', sans-serif",
+      "classes": "font-['Satoshi'] tracking-normal leading-relaxed"
+    },
+    "mono": {
+      "family": "'IBM Plex Mono', monospace",
+      "classes": "font-mono tracking-tight"
+    }
+  },
+  "colors": {
+    "background": {
+      "primary": "#FFFFFF",
+      "secondary": "#F9FAFB",
+      "tertiary": "#F3F4F6",
+      "glass": "bg-white/70 backdrop-blur-xl"
+    },
+    "text": {
+      "primary": "#0A0A0A",
+      "secondary": "#4B5563",
+      "muted": "#9CA3AF",
+      "inverse": "#FFFFFF"
+    },
+    "brand": {
+      "primary": "#002FA7",
+      "primary_hover": "#002482",
+      "accent": "#FF2A2A"
+    },
+    "status": {
+      "success": "#059669",
+      "warning": "#D97706",
+      "error": "#DC2626"
+    },
+    "border": {
+      "default": "#E5E7EB",
+      "active": "#002FA7"
+    }
+  },
+  "spacing_and_layout": {
+    "generous_padding": true,
+    "bento_grid_marketing": "grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8",
+    "control_room_dashboard": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4",
+    "surface_strategy": {
+      "dashboard_cards": "Flat background, 1px subtle border (border-gray-200), no drop shadows, hard square edges or very minimal rounding (rounded-sm).",
+      "headers": "Crystal Glass - bg-white/70 backdrop-blur-xl border-b border-gray-200.",
+      "grid_borders": "Use border-collapse techniques to expose the grid skeleton in dense data views."
+    }
+  },
+  "components": {
+    "buttons": "Square or rounded-sm edges. High contrast. Primary buttons must be brand.primary with white text. Hover states must be explicitly defined and high contrast.",
+    "inputs": "Shadcn components heavily customized: 1px solid border, completely flat, focus:ring-2 focus:ring-[#002FA7]. No shadows.",
+    "cards": "Cardless or completely flat rectangular containers. Avoid standard Shadcn card shadow.",
+    "animations": "Minimal and snappy. Use framer-motion for micro-interactions only, not distracting."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Clean, stroke-width-2 or 1.5. Consistent size."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1765279077820-d3f4f2bcdca5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBjb3Jwb3JhdGUlMjBvZmZpY2UlMjBmaW5hbmNlfGVufDB8fHx8MTc3NDkwMjM0MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Modern glass skyscraper with geometric facade design",
+        "category": "hero_background"
+      },
+      {
+        "url": "https://images.pexels.com/photos/17057647/pexels-photo-17057647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Modern office interior viewed through tinted glass at dusk",
+        "category": "onboarding_side_image"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1649142738067-1c88b4406cc7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwzfHx0ZWNoJTIwY29tcGFueSUyMGxvZ28lMjBibGFjayUyMGFuZCUyMHdoaXRlfGVufDB8fHx8MTc3NDkwMjM0Mnww&ixlib=rb-4.1.0&q=85",
+        "description": "Minimalist desk setup with modern tech",
+        "category": "auth_background"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "IMPORT FONTS: Include the Fontshare @import in your global CSS to load Cabinet Grotesk and Satoshi.",
+    "LANDING PAGE: Build using pure HTML/Tailwind. Use 'hero_background' with an appropriate overlay (bg-white/40 for light theme or bg-black/50 if you invert it). Implement a high-impact 'Bento Grid' layout for features.",
+    "ROUTING & ONBOARDING: Implement the exact flow: Landing -> Register -> Login -> Role Selection (Individual, Sole Prop, OPC, Pvt Ltd) -> Dynamic Onboarding wizard.",
+    "WIZARD UI: Design the multi-step onboarding wizard using progressive disclosure. The form should feel like a secure 'Swiss-designed' application—flat, clear, high contrast.",
+    "32-BIT BITMASK SYSTEM: Implement the status bitmask logic exactly as requested (PAN=1, GST=2, CIN=4, Consent=8, AIS=16, ITR=32, Account=64).",
+    "DASHBOARD UI: Build a 'Control Room' dense dashboard layout. Visually represent the 32-bit status using a technical UI element (e.g., a series of 7 binary toggle lights, mono-spaced binary output, or a step-progress bar).",
+    "COMPONENT OVERRIDES: Use Shadcn UI for forms, tabs, and tables, but strip away any soft shadows or rounded-xl corners to fit the Archetype 4 Swiss Brutalist vibe.",
+    "ACCESSIBILITY: EVERY interactive element (buttons, forms, links, progress indicators) MUST have a descriptive 'data-testid' attribute in kebab-case format."
+  ]
+}
